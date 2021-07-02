@@ -1,2 +1,2 @@
-# ATS_testing
-Characterization and improvement of Adaptive Temporal Sampling
+# Mito_DL
+Segmentation of mitochondrial constrictions with convolutional networks
