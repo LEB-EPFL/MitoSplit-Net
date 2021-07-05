@@ -1,2 +1,2 @@
 # MitoSplit-Net
-Detection of mitochondrial divisions with convolutional networks
+Detection of mitochondrial divisions with neural networks
