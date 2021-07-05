@@ -1,2 +1,2 @@
 # MitoSplit-Net
-Segmentation of mitochondrial constrictions with convolutional networks
+Segmentation of mitochondrial divisions with convolutional networks
