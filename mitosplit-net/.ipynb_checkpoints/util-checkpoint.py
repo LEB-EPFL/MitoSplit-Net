@@ -1,9 +1,15 @@
 import numpy as np
 import h5py
 import pickle
+from glob import glob
+from tqdm import tqdm
+
+import tensorflow as tf
+
 
 #General
 def save_pkl(data, path, name):
+    filename = path+name
     print('Saving '+filename)
     pickle.dump(data, open(filename, 'wb'))
     print('Done.')
@@ -11,7 +17,7 @@ def save_pkl(data, path, name):
 def load_pkl(path, name):
     filename = path+name
     print('Loading '+filename)
-    return pickle.load(open(filename, 'rb'))
+    return pickle.load(open(filename, 'rb'))      
     
 def save_h5(data, path, name):
   filename = path+name+'.h5'
@@ -27,6 +33,17 @@ def load_h5(path, name):
   print('Converting to array')
   return np.array(hf)
 
+def load_model(model_path):
+  try:
+    return tf.keras.models.load_model(model_path+'.h5')
+  except:
+    all_models_dir = glob(model_path+'*/model.h5')
+    model = {}
+    for model_dir in tqdm(all_models_dir, total=len(all_models_dir)):
+        model_id = model_dir.split('\\')[-2]
+        model[model_id] = tf.keras.models.load_model(model_dir)
+    return model        
+    
 def activity_percent(binary_output):
   """Percentage of active or inactive periods in binary_output"""
   N = len(binary_output)

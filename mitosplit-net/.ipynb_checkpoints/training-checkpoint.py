@@ -16,7 +16,6 @@ def create_model(nb_filters=8, firstConvSize=9):
     loss = 'binary_crossentropy'
     metrics = [BinaryAccuracy()]
     
-    
     #Network architecture
     input_shape = (None, None, 1)
     inputs = Input(shape=input_shape)
@@ -42,13 +41,13 @@ def create_model(nb_filters=8, firstConvSize=9):
 
     # Down2 and Up2 are not really used in the moment, because they are skipped, as down1_pool
     # is used in the center layer as input and center is used in up1 as input, not up2
-    down2 = Conv2D(nb_filters*2, (3, 3), padding='same')(down1_pool)
-    down2 = BatchNormalization()(down2)
-    down2 = Activation('relu')(down2)
-    down2 = Conv2D(nb_filters*2, (3, 3), padding='same')(down2)
-    down2 = BatchNormalization()(down2)
-    down2 = Activation('relu')(down2)
-    down2_pool = MaxPooling2D((2, 2), strides=(2, 2))(down2)
+    #down2 = Conv2D(nb_filters*2, (3, 3), padding='same')(down1_pool)
+    #down2 = BatchNormalization()(down2)
+    #down2 = Activation('relu')(down2)
+    #down2 = Conv2D(nb_filters*2, (3, 3), padding='same')(down2)
+    #down2 = BatchNormalization()(down2)
+    #down2 = Activation('relu')(down2)
+    #down2_pool = MaxPooling2D((2, 2), strides=(2, 2))(down2)
 
     # Center
     print('* Start Center Section *')
@@ -61,14 +60,14 @@ def create_model(nb_filters=8, firstConvSize=9):
 
     # Decoder (with skip connections to the encoder section)
     print('* Start Decoder Section *')
-    up2 = UpSampling2D((2, 2))(center)
-    up2 = concatenate([down2, up2], axis=3)
-    up2 = Conv2D(nb_filters*2, (3, 3), padding='same')(up2)
-    up2 = BatchNormalization()(up2)
-    up2 = Activation('relu')(up2)
-    up2 = Conv2D(nb_filters*2, (3, 3), padding='same')(up2)
-    up2 = BatchNormalization()(up2)
-    up2 = Activation('relu')(up2)
+    #up2 = UpSampling2D((2, 2))(center)
+    #up2 = concatenate([down2, up2], axis=3)
+    #up2 = Conv2D(nb_filters*2, (3, 3), padding='same')(up2)
+    #up2 = BatchNormalization()(up2)
+    #up2 = Activation('relu')(up2)
+    #up2 = Conv2D(nb_filters*2, (3, 3), padding='same')(up2)
+    #up2 = BatchNormalization()(up2)
+    #up2 = Activation('relu')(up2)
 
     up1 = UpSampling2D((2, 2))(center)
     up1 = concatenate([down1, up1], axis=3)

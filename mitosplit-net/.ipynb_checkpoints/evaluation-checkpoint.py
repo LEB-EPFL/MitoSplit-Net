@@ -1,7 +1,17 @@
 import numpy as np
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 
 import tensorflow as tf
+
+def predict(input_test, model):
+    try:
+        return model.predict(input_test)[:, :, :, 0]
+    except:
+        nb_models = len(model)
+        pred_output_test = np.zeros((nb_models, *input_test.shape))
+        for model_id, model_name in enumerate(models):
+            pred_output_test[model_id] = model[model_name].predict(input_test)[:, :, :, 0]
+        return pred_output_test
 
 def get_metrics(y_true, y_pred, thresholds):
   metrics = {'binary accuracy': tf.metrics.BinaryAccuracy(),
@@ -18,7 +28,8 @@ def get_metrics(y_true, y_pred, thresholds):
   return metrics_test
 
 def detection_match(y_true, y_pred, threshold=0.99):
-  total = y_true.shape[0]
-  true_det = np.any(np.any(y_true, axis=1), axis=1)
-  pred_det = np.any(np.any(y_pred>=threshold, axis=1), axis=1)
-  return np.sum(np.equal(true_det, pred_det))/total
+    total = y_true.shape[0]
+    isTrue = np.any(np.any(y_true, axis=-1), axis=-1)
+    isPred = np.any(np.any(y_pred>=threshold, axis=1), axis=1)
+    return np.sum(np.equal(isPred[None, :], isTrue), axis=1)/total
+
