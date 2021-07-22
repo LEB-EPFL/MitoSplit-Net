@@ -4,7 +4,8 @@ plt.rc('ytick', labelsize=18)
 plt.rc('axes', labelsize=20)
 plt.rc('legend', fontsize=18)
 
-def plot_merge(input_img, output_img, cmap=['gray', 'inferno'], title='Mito + GT', frame=None, ax=None):
+def plot_merge(input_img, output_img, cmap=['gray', 'inferno'], title='Mito + GT', 
+               alpha=0.5, frame=None, ax=None):
   title_size = 20
   if ax is None:
     fig, ax = plt.subplots(figsize=(5,5))
@@ -15,7 +16,7 @@ def plot_merge(input_img, output_img, cmap=['gray', 'inferno'], title='Mito + GT
   else:
     ax.set_title(title+' [%i]'%frame, size=title_size)
   ax.imshow(input_img, cmap=cmap[0])
-  ax.imshow(output_img, cmap=cmap[1], alpha=0.5)
+  ax.imshow(output_img, cmap=cmap[1], alpha=alpha)
   ax.set(xticks=[], yticks=[])
   ax.axis('off')
   return ax
