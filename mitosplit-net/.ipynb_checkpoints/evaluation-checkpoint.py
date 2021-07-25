@@ -1,6 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 
+
 import tensorflow as tf
 
 def predict(input_test, model):
@@ -12,7 +13,7 @@ def predict(input_test, model):
         for model_id, model_name in enumerate(models):
             pred_output_test[model_id] = model[model_name].predict(input_test)[:, :, :, 0]
         return pred_output_test
-
+      
 def get_metrics(y_true, y_pred, thresholds):
   metrics = {'binary accuracy': tf.metrics.BinaryAccuracy(),
              'precision': tf.metrics.Precision(),
