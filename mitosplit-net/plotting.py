@@ -7,6 +7,8 @@ plt.rc('legend', fontsize=18)
 def plot_merge(input_img, output_img, cmap=['gray', 'inferno'], title='Mito + GT', 
                alpha=0.5, frame=None, ax=None):
   title_size = 20
+  if type(cmap)==str:
+    cmap = [cmap]*2
   if ax is None:
     fig, ax = plt.subplots(figsize=(5,5))
   else:
@@ -25,7 +27,8 @@ def plot_comparison(input_img, output_img, cmap = ['gray', 'inferno'],
                     labels=['input_data', 'output_data'], frame=None, 
                     merge=False, axes=None):
   title_size = 20
-  
+  if type(cmap)==str:
+    cmap = [cmap]*2
   if merge:
     if axes is None:
       fig, axes = plt.subplots(1, 3, figsize=(5*3, 5))
@@ -44,7 +47,6 @@ def plot_comparison(input_img, output_img, cmap = ['gray', 'inferno'],
     
     ax.imshow(img, cmap=c)
     ax.axis('off')
-  
   plt.subplots_adjust(wspace=0.05)
   return axes
 
