@@ -2,6 +2,7 @@ import numpy as np
 import h5py
 import pickle
 from glob import glob
+import os
 from tqdm import tqdm
 
 import tensorflow as tf
@@ -12,24 +13,70 @@ def get_filename(path, keyword, extension=None):
         return [full_path.split('\\')[-1] for full_path in glob(path+keyword+'*')]
     return [full_path.split('\\')[-1].replace('.'+extension, '') for full_path in glob(path+keyword+'*') if extension in full_path]
 
-def save_pkl(data, path, name):
-    filename = path+name
-    print('\nSaving '+filename)
-    pickle.dump(data, open(filename, 'wb'))
-    print('Done.')
+def save_pkl(data, path, name, folder_name=None):
+    try:
+        if folder_name is not None:
+            filename = path+folder_name+name
+        else:
+            filename = path+name
+        print('\nSaving '+filename)
+        pickle.dump(data, open(filename, 'wb'))
+        print('Done.')
+    except:
+        if folder_name is not None and len(folder_name)!=len(name):
+            raise ValueError("'name' and 'folder_name' lenghts don't match.")
+        elif folder_name is not None and len(folder_name)==len(name):
+            for file, subfolder, title in zip(data, folder_name, name):
+                if not os.path.exists(path+subfolder):
+                    os.makedirs(path+subfolder)
+                filename = path+subfolder+'/'+title
+                print('\nSaving '+filename)
+                if type(data)==dict:
+                    pickle.dump(data[file], open(filename, 'wb'))
+                else:
+                    pickle.dump(file, open(filename, 'wb'))
+            print('Done.')
+        else:
+            for file, title in zip(data, name):
+                filename = path+title
+                print('\nSaving '+filename)
+                pickle.dump(file, open(filename, 'wb'))
+            print('Done.')
+        
+            
     
-def load_pkl(path, name):
+def load_pkl(path, name, folder_name=None, as_type=None):
     try:
         filename = path+name
         print('\nLoading '+filename)
-        return pickle.load(open(filename, 'rb'))      
+        return pickle.load(open(filenafme, 'rb'))      
     except:
         filename = [path+title for title in name]
         data = []
-        for fname in filename:
-            print('\nLoading '+fname)
-            data += [pickle.load(open(fname, 'rb'))]
-        return data      
+        
+        if folder_name is not None and len(folder_name)!=len(name):
+            raise ValueError("'name' and 'folder_name' lenghts don't match.")
+        elif folder_name is not None and len(folder_name)==len(name):
+            for subfolder, title in zip(folder_name, name):
+                filename = path+subfolder+'/'+title
+                print('\nLoading '+filename)
+                data += [pickle.load(open(filename, 'rb'))]
+            print('Done.')
+        else:
+            for title in name:
+                filename = path+title
+                print('\nLoading '+filename)
+                data += [pickle.load(open(filename, 'rb'))]
+            print('Done.')
+        if as_type==np.ndarray:
+            return np.array(data)
+        elif as_type==dict:
+            try:
+                return dict(zip(folder_name, data))
+            except:
+                return dict(zip(name, data))
+        else:
+            return data
     
 def save_h5(data, path, name):
   filename = path+name+'.h5'
@@ -46,14 +93,35 @@ def load_h5(path, name):
         print('Converting to array')
         return np.array(hf)
     except:
-        filename = [path+fname+'.h5' for fname in name]
         data = []
-        for full_dir, fname in zip(filename, name):
-            print('\nLoading '+full_dir)
-            hf = h5py.File(full_dir, 'r').get(fname)
+        for title in name:
+            filename = path+title+'.h5'
+            print('\nLoading '+filename)
+            hf = h5py.File(filename, 'r').get(title)
             data += [np.array(hf)]
         return np.array(data)
  
+def save_model(model, path, name, folder_name=None):
+    try:
+        return model.save(path+name+'.h5')
+    except:
+        if folder_name is not None and len(folder_name)!=len(name):
+            raise ValueError("'name' and 'folder_name' lenghts don't match.")
+        elif folder_name is not None and len(folder_name)==len(name):
+            for model_name, subfolder, title in zip(model, folder_name, name):
+                if not os.path.exists(path+subfolder):
+                    os.makedirs(path+subfolder)
+                filename = path+subfolder+'/'+title+'.h5'
+                print('\nSaving '+filename)
+                model[model_name].save(filename)
+            print('Done.')
+        else:
+            for model_name, title in zip(data, name):
+                filename = path+title+'.h5'
+                print('\nSaving '+filename)
+                model[model_name].save(filename)
+            print('Done.')
+    return model
 
 def load_model(model_path):
   try:
@@ -63,6 +131,7 @@ def load_model(model_path):
     model = {}
     for model_dir in tqdm(all_models_dir, total=len(all_models_dir)):
         model_id = model_dir.split('\\')[-2]
+        print('\nLoading %s'%model_id)
         model[model_id] = tf.keras.models.load_model(model_dir)
     return model
 
