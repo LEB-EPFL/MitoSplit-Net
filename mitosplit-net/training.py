@@ -10,7 +10,7 @@ from sklearn.utils import shuffle
 
 from sklearn.model_selection import train_test_split
 
-def create_model(nb_filters=8, firstConvSize=9):    
+def create_model(nb_filters=8, firstConvSize=9, printSummary=False):    
     #Hyperparameters
     optimizer_type = Adam(learning_rate=0.5e-3)
     loss = 'binary_crossentropy'
@@ -92,7 +92,8 @@ def create_model(nb_filters=8, firstConvSize=9):
     
     model = Model(inputs=inputs, outputs=outputs)
     model.compile(optimizer=optimizer_type, loss=loss, metrics=metrics)
-    print(model.summary())
+    if printSummary:
+        print(model.summary())
     return model
 
 
@@ -113,10 +114,13 @@ def train_model(model, input_data, output_data, batch_size=16):
                         batch_size=batch_size,
                         epochs=max_epochs,
                         validation_split=validtrain_split_ratio,
-                        shuffle=batch_shuffle)
+                        shuffle=batch_shuffle,
+                        verbose=2)
   
     #Frames separated for evaluation
     frames_test = np.arange(0, input_data.shape[0], 1)
     frames_test = shuffle(frames_test, random_state=data_split_state)[0:int(input_data.shape[0]*data_set_test_trainvalid_ratio)]
     
     return history.history, frames_test
+
+
