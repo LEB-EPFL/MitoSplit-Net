@@ -38,13 +38,13 @@ def segmentFissionsStack(stack, fission_props, **kwargs):
         
 
 def analyzeFissions(labels):
-"""Find fission sites and measure their diameter"""
-fission_props = {}
-if np.any(labels!=0): 
-    fission_props = measure.regionprops_table(labels, properties=['centroid', 'equivalent_diameter'])    
-    fission_props['centroid-0'] = fission_props['centroid-0'].round().astype(int)
-    fission_props['centroid-1'] = fission_props['centroid-1'].round().astype(int)
-return fission_props
+    """Find fission sites and measure their diameter"""
+    fission_props = {}
+    if np.any(labels!=0): 
+        fission_props = measure.regionprops_table(labels, properties=['centroid', 'equivalent_diameter'])    
+        fission_props['centroid-0'] = fission_props['centroid-0'].round().astype(int)
+        fission_props['centroid-1'] = fission_props['centroid-1'].round().astype(int)
+    return fission_props
     
 def analyzeFissionsStack(labels):
     """Iterates analyzeFissions."""
