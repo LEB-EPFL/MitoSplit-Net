@@ -10,8 +10,8 @@ import tensorflow as tf
 #General
 def get_filename(path, keyword, extension=None):
     if extension is None:
-        return [full_path.split('\\')[-1] for full_path in glob(path+keyword+'*')]
-    return [full_path.split('\\')[-1].replace('.'+extension, '') for full_path in glob(path+keyword+'*') if extension in full_path]
+        return [full_path.split('\\')[-1] for full_path in glob(path+'*') if keyword in full_path]
+    return [full_path.split('\\')[-1].replace('.'+extension, '') for full_path in glob(path+'*') if (keyword in full_path)&(extension in full_path)]
 
 def save_pkl(data, path, name, folder_name=None):
     try:
@@ -47,9 +47,12 @@ def save_pkl(data, path, name, folder_name=None):
     
 def load_pkl(path, name, folder_name=None, as_type=None):
     try:
-        filename = path+name
+        try:
+            filename = path+folder_name+'/'+name
+        except:
+            filename = path+name
         print('\nLoading '+filename)
-        return pickle.load(open(filenafme, 'rb'))      
+        return pickle.load(open(filename, 'rb'))      
     except:
         filename = [path+title for title in name]
         data = []
@@ -123,17 +126,52 @@ def save_model(model, path, name, folder_name=None):
             print('Done.')
     return model
 
-def load_model(model_path):
+def load_model(path, name, folder_name=None, as_type=None, all_models=False):
   try:
-    return tf.keras.models.load_model(model_path+'.h5')
+    try:
+        filename = path+folder_name+'/'+name
+    except:
+        filename = path+name
+    print('\nLoading '+filename)
+    return tf.keras.models.load_model(filename+'.h5')
   except:
-    all_models_dir = glob(model_path+'*/model.h5')
-    model = {}
-    for model_dir in tqdm(all_models_dir, total=len(all_models_dir)):
-        model_id = model_dir.split('\\')[-2]
-        print('\nLoading %s'%model_id)
-        model[model_id] = tf.keras.models.load_model(model_dir)
-    return model
+    model = []
+    
+    if all_models:
+        all_models_dir = glob(model_path+'*/model.h5')
+        
+        for model_dir in tqdm(all_models_dir, total=len(all_models_dir)):
+            model_name = model_dir.split('\\')[-2]
+            print('\nLoading %s'%model_name)
+            model[model_name] = tf.keras.models.load_model(model_name)
+        return model
+    
+    if folder_name is not None and len(folder_name)!=len(name):
+        raise ValueError("'name' and 'folder_name' lenghts don't match.")
+    elif folder_name is not None and len(folder_name)==len(name):
+        for subfolder, title in zip(folder_name, name):
+            filename = path+subfolder+'/'+title+'.h5'
+            print('\nLoading '+filename)
+            model += [tf.keras.models.load_model(filename)]
+        print('Done.')
+    else:
+        for title in name:
+            filename = path+title+'.h5'
+            print('\nLoading '+filename)
+            model += [tf.keras.models.load_model(filename)]
+        print('Done.')
+    
+    if as_type==np.ndarray:
+        return np.array(model)
+    elif as_type==dict:
+        try:
+            return dict(zip(folder_name, model))
+        except:
+            return dict(zip(name, model))
+    else:
+        return model
+    
+    
 
 def activity_percent(binary_output):
   """Percentage of active or inactive periods in binary_output"""
