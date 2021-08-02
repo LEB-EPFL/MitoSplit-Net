@@ -22,19 +22,19 @@ def segmentFissions(img, fission_props, sigma=0):
     """Segmentation of processed fissions using original fission sites as markers for distace Watershed."""
     if len(fission_props)>0:
         coords = (fission_props['centroid-0'], fission_props['centroid-1'])
-        return distance_watershed(img, coords, sigma)       
+        return distance_watershed(img, coords, sigma)
     return np.zeros_like(img)
 
 def segmentFissionsStack(stack, fission_props, **kwargs):
     """Iterates segmentFissions."""
     if stack.ndim==2:
-        return segmentFissions(stack, fission_props, **kwargs)
+        return segmentFissions(stack, fission_props, **kwargs).astype(int)
     
     nb_img = stack.shape[0]
     labels = np.zeros_like(stack)
     for i in tqdm(range(nb_img), total=nb_img):
         labels[i] = segmentFissions(stack[i], fission_props[i], **kwargs)
-    return labels
+    return labels.astype(int)
         
 
 def analyzeFissions(labels):
@@ -49,7 +49,7 @@ def analyzeFissions(labels):
 def analyzeFissionsStack(labels):
     """Iterates analyzeFissions."""
     if labels.ndim==2:
-        return analyzeFissions(labels, **kwargs)
+        return analyzeFissions(labels)
     
     nb_img = labels.shape[0]
     fission_props = [{}]*nb_img
@@ -57,25 +57,50 @@ def analyzeFissionsStack(labels):
         fission_props[i] = analyzeFissions(labels[i])
     return fission_props
 
-def prepareProc(img, coords=None, sigma=1, vmax=255, min_size=9):
+def filterLabels(labels, labels_to_keep):
+    """Keep only those labels that are in labels_to_keep."""
+    labels_proc = np.zeros_like(labels)
+    for label in labels_to_keep:
+        mask = labels==label
+        labels_proc[mask] = labels[mask]
+    return labels_proc
+
+def filterLabelsStack(labels, labels_to_keep):
+    """Iterates filterLabels."""
+    if labels.ndim==2:
+        return filterLabels(labels, labels_to_keep)
+    
+    labels_proc = np.zeros_like(labels)
+    for i in range(labels.shape[0]):
+        labels_proc[i] = filterLabels(labels[i], labels_to_keep[i])
+    return labels_proc
+    
+
+def prepareProc(img, sigma=1, dilation_nb_sigmas=2, threshold=0):
   """Smoothed probability map of divisions"""
   mask = segmentation.clear_border(img>0) #Remove objects in contact with the border
-  img_proc = img*mask 
-  labels = distance_watershed(img_proc, coords, 0.1*sigma)
-  labels = morphology.remove_small_objects(labels, min_size) #Remove too small objects
+  img_proc = img*mask
+  labels = distance_watershed(img_proc, sigma=0.1*sigma)
+  labels = morphology.remove_small_objects(labels, 9) #Remove too small objects
   img_proc = np.zeros_like(img)
   if np.any(labels!=0): 
-    # Gaussian dilation to increase minimal spot size
-    fission_props = measure.regionprops_table(labels, properties=['centroid', 'equivalent_diameter'])    
-    fission_props['centroid-0'] = fission_props['centroid-0'].round().astype(int)
-    fission_props['centroid-1'] = fission_props['centroid-1'].round().astype(int)
-    mask = (fission_props['centroid-0'], fission_props['centroid-1'])
-    img_proc[mask] = img[mask]
-    img_proc = filters.gaussian(img_proc, sigma)
-    #Normalization
-    img_proc = img_proc*vmax/img_proc.max()
-    img_proc = img_proc*(img_proc>filters.threshold_otsu(img))
-    return img_proc, fission_props
+    fission_props = measure.regionprops_table(labels, intensity_image=img, properties=['label', 'mean_intensity'])
+    labels_to_keep = fission_props['label'][fission_props['mean_intensity']>threshold]
+    if len(labels_to_keep)>0:
+        labels = filterLabels(labels, labels_to_keep)
+        fission_props = measure.regionprops_table(labels, properties=['centroid', 'equivalent_diameter'])
+        fission_props['centroid-0'] = fission_props['centroid-0'].round().astype(int)
+        fission_props['centroid-1'] = fission_props['centroid-1'].round().astype(int)
+        #Add a dot in each fission site
+        img_proc[(fission_props['centroid-0'], fission_props['centroid-1'])] = 1 
+        #Increase minimum spot size
+        dilation_radius = round(dilation_nb_sigmas*sigma)
+        mask = morphology.binary_dilation(img_proc, morphology.disk(dilation_radius)) 
+        #Intensity smoothing
+        img_proc = filters.gaussian(img_proc, sigma, truncate=4+dilation_radius)*mask 
+        #Normalization
+        img_proc = (img_proc-img_proc.min())/(img_proc.max()-img_proc.min())
+        return img_proc, fission_props
   return img_proc, {}
 
 def prepareStack(stack, **kwargs):
@@ -83,7 +108,7 @@ def prepareStack(stack, **kwargs):
   if stack.ndim==2:
     return prepareProc(stack, **kwargs)
   
-  stack_proc = np.zeros_like(stack)
+  stack_proc = np.zeros(stack.shape)
   fission_props = [0]*stack.shape[0]
   for i, img in tqdm(enumerate(stack), total=stack.shape[0]):
     stack_proc[i], fission_props[i] = prepareProc(img, **kwargs)
