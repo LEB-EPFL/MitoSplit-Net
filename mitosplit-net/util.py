@@ -88,21 +88,32 @@ def save_h5(data, path, name):
   hf= hf.create_dataset(name, data=data)
   print('Done.')
   
-def load_h5(path, name):
+def load_h5(path, name, indices=None):
     try:
         filename = path+name+'.h5'
         print('\nLoading '+filename)
         hf = h5py.File(filename, 'r').get(name)
         print('Converting to array')
-        return np.array(hf)
+        if indices is None:
+            return np.array(hf)
+        else:
+            return hf[indices]
     except:
         data = []
-        for title in name:
-            filename = path+title+'.h5'
-            print('\nLoading '+filename)
-            hf = h5py.File(filename, 'r').get(title)
-            data += [np.array(hf)]
-        return np.array(data)
+        if indices is None:
+            for title in name:
+                filename = path+title+'.h5'
+                print('\nLoading '+filename)
+                hf = h5py.File(filename, 'r').get(title)
+                data += [np.array(hf)]
+            return np.array(data)
+        else:
+            for title in name:
+                filename = path+title+'.h5'
+                print('\nLoading '+filename)
+                hf = h5py.File(filename, 'r').get(title)
+                data += [hf[indices]]
+            return np.array(data)
  
 def save_model(model, path, name, folder_name=None):
     try:
