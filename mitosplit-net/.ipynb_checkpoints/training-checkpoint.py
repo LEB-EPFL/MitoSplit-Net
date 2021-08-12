@@ -10,13 +10,6 @@ from sklearn.utils import shuffle
 
 from sklearn.model_selection import train_test_split
 
-from skimage import segmentation
-
-from Augmentor import Pipeline
-from Augmentor.Operations import Operation
-from PIL import Image
-
-
 def create_model(nb_filters=8, firstConvSize=9, printSummary=False):    
     #Hyperparameters
     optimizer_type = Adam(learning_rate=0.5e-3)
@@ -129,62 +122,5 @@ def train_model(model, input_data, output_data, batch_size=16):
     frames_test = shuffle(frames_test, random_state=data_split_state)[0:int(input_data.shape[0]*data_set_test_trainvalid_ratio)]
     
     return history.history, frames_test
-
-class ClearBorder(Operation):
-    """Clear the border of the dataset before feeding network with augmented data"""
-    def __init__(self, probability):
-        Operation.__init__(self, probability)
-
-    def perform_operation(self, img):
-        return Image.fromarray(img*segmentation.clear_border(img>0))
-
-
-def train_model_augmented(model, input_data, output_data, batch_size=16):
-    #Data dimensions
-    width, height = input_data.shape[1:]
-    
-    # Split dataset into [test] and [train+valid]
-    data_set_test_trainvalid_ratio = 0.2
-    data_split_state = None   # Random split on each call
-    input_train, input_test, output_train, output_test =  train_test_split(input_data, 
-                                                                           output_data, 
-                                                                           test_size=data_set_test_trainvalid_ratio, 
-                                                                           random_state=data_split_state)
-    
-    validtrain_split_ratio = 0.2  # % of the seen dataset to be put aside for validation, rest is for training
-    max_epochs = 20  # maxmimum number of epochs to be iterated
-    batch_shuffle= True   # shuffle the training data prior to batching before each epoch
-
-    # Define operation to clear the border of the dataset after augmentation
-    clear_border = ClearBorder(probability = 1)
-
-    #Define augmentation pipeline
-    aug_pipeline = Augmentor.Pipeline()
-    aug_pipeline.rotate(probability=0.8, max_left_rotation=5, max_right_rotation=5)
-    aug_pipeline.rotate90(probability=0.5)
-    aug_pipeline.rotate270(probability=0.5)
-    aug_pipeline.flip_left_right(probability=0.5)
-    aug_pipeline.flip_top_bottom(probability=0.5)
-    aug_pipeline.crop_random(probability=0.5, percentage_area=0.5)
-    aug_pipeline.resize(probability=0.5, width=width, height=height)
-    aug_pipeline.random_distortion(probability=0.5, grid_width=int(width/8), grid_height=int(height/8), magnitud=5)
-    aug_pipeline.add_operation(clear_border)
-    data_generator = aug_pipeline.keras_generator_from_array(input_train, output_train, batch_size=batch_size, scaled=False)
-    
-
-    history = model.fit(data_generator,
-                        batch_size=batch_size,
-                        epochs=max_epochs,
-                        validation_split=validtrain_split_ratio,
-                        shuffle=batch_shuffle,
-                        steps_per_epoch=len(input_train)/batch_size,
-                        verbose=2)
-    
-    #Frames separated for evaluation
-    frames_test = np.arange(0, input_data.shape[0], 1)
-    frames_test = shuffle(frames_test, random_state=data_split_state)[0:int(input_data.shape[0]*data_set_test_trainvalid_ratio)]
-    
-    return history.history, frames_test
-
 
 

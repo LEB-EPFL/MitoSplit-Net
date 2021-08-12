@@ -3,7 +3,7 @@ from skimage import filters, segmentation, feature, measure, morphology
 import scipy.ndimage as ndi
 from tqdm import tqdm
 
-def distance_watershed(img, coords=None, sigma=0.1):
+def distance_watershed(img, sigma=0.1, coords=None):
     """Segmentation of events of interest based on Distance Transform Watershed of the Hessian probability map of divisions"""
     img_smooth = filters.gaussian(img, sigma) #Smoothing so local maxima are well-defined
     distance = ndi.distance_transform_edt(img_smooth)
@@ -16,26 +16,52 @@ def distance_watershed(img, coords=None, sigma=0.1):
     mask[coords] = True
     markers = ndi.label(mask)[0]
     #Watershed
-    return segmentation.watershed(-distance, markers, mask=img)
+    return segmentation.watershed(-distance, markers, mask=img).astype(np.uint8)
 
-def segmentFissions(img, fission_props, sigma=0):
+def segmentFissions(img, fission_props=None, sigma=0):
     """Segmentation of processed fissions using original fission sites as markers for distace Watershed."""
+    if fission_props is None:
+        return distance_watershed(img, sigma=sigma)
+    
     if len(fission_props)>0:
         coords = (fission_props['centroid-0'], fission_props['centroid-1'])
-        return distance_watershed(img, coords, sigma)
-    return np.zeros_like(img)
+        return distance_watershed(img, sigma=sigma, coords=coords)
+    return np.zeros_like(img, dtype=np.uint8)
 
-def segmentFissionsStack(stack, fission_props, **kwargs):
+def segmentFissionsStack(stack, fission_props=None, **kwargs):
     """Iterates segmentFissions."""
     if stack.ndim==2:
-        return segmentFissions(stack, fission_props, **kwargs).astype(int)
+        return segmentFissions(stack, fission_props=fission_props, **kwargs).astype(int)
     
     nb_img = stack.shape[0]
     labels = np.zeros_like(stack)
-    for i in tqdm(range(nb_img), total=nb_img):
-        labels[i] = segmentFissions(stack[i], fission_props[i], **kwargs)
-    return labels.astype(int)
+    if fission_props is not None:
+        for i in tqdm(range(nb_img), total=nb_img):
+            labels[i] = segmentFissions(stack[i], fission_props[i], **kwargs)
         
+    else:
+        for i in tqdm(range(nb_img), total=nb_img):
+            labels[i] = segmentFissions(stack[i], **kwargs)
+    return labels.astype(int)
+
+def fissionCoords(labels):
+    if np.any(labels!=0): 
+        fission_props = measure.regionprops_table(labels, properties=['centroid'])    
+        return (fission_props['centroid-0'].round().astype(int),
+                fission_props['centroid-1'].round().astype(int))
+    else:
+        return None
+
+def fissionCoordsStack(labels):
+    """Iterates fissionCoords."""
+    if labels.ndim==2:
+        return fissionCoords(labels)
+    
+    nb_img = labels.shape[0]
+    fission_props = [{}]*nb_img
+    for i in tqdm(range(nb_img), total=nb_img):
+        fission_props[i] = fissionCoords(labels[i])
+    return fission_props
 
 def analyzeFissions(labels):
     """Find fission sites and measure their diameter"""
@@ -59,7 +85,7 @@ def analyzeFissionsStack(labels):
 
 def filterLabels(labels, labels_to_keep):
     """Keep only those labels that are in labels_to_keep."""
-    labels_proc = np.zeros_like(labels)
+    labels_proc = np.zeros_like(labels, dtype=np.uint8)
     for label in labels_to_keep:
         mask = labels==label
         labels_proc[mask] = labels[mask]
@@ -76,13 +102,13 @@ def filterLabelsStack(labels, labels_to_keep):
     return labels_proc
     
 
-def prepareProc(img, sigma=1, dilation_nb_sigmas=2, threshold=0):
+def prepareProc(img, sigma=1, dilation_nb_sigmas=2, threshold=0, coords=None):
   """Smoothed probability map of divisions"""
   mask = segmentation.clear_border(img>0) #Remove objects in contact with the border
   img_proc = img*mask
-  labels = distance_watershed(img_proc, sigma=0.1*sigma)
+  labels = distance_watershed(img_proc, sigma=0.1*sigma, coords=coords)
   labels = morphology.remove_small_objects(labels, 9) #Remove too small objects
-  img_proc = np.zeros_like(img)
+  img_proc = np.zeros_like(img, dtype=np.float32)
   if np.any(labels!=0): 
     fission_props = measure.regionprops_table(labels, intensity_image=img, properties=['label', 'mean_intensity'])
     labels_to_keep = fission_props['label'][fission_props['mean_intensity']>threshold]
