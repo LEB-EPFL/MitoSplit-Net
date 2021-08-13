@@ -137,3 +137,43 @@ def plot_metrics_comparison(metrics, color=None, title=None, ylim=None, ax=None,
     fig.legend(bbox_to_anchor=(1, 0.73), loc=2, borderaxespad=-1)#, ncol=n//2 + 1)
     
   return ax
+
+
+def plot_performance_curves(metrics, output_test, colors=None, axes=None):
+    
+    precRecRand = {}
+    for model_name in metrics:
+        out_binary = output_test[model_name]>0
+        precRecRand[model_name] = out_binary.sum()/(out_binary.size)
+
+    print('\nFraction of positives')
+    print(precRecRand)
+        
+    if axes is None:
+        fig, axes = plt.subplots(1, 2, figsize=(10, 5), sharex=True, sharey=True)
+    else:
+        fig = axes[0].figure
+
+    if colors is None:
+        colors = plt.cm.get_cmap('tab10')(range(len(metrics)))
+
+    for model_name, color in zip(metrics, colors):
+        axes[0].plot(metrics[model_name]['FPR'], metrics[model_name]['TPR'], label='s=%s'%model_name.split('_s')[-1])  
+        axes[1].plot(metrics[model_name]['TPR'], metrics[model_name]['precision'], color=color)
+        axes[1].axhline(precRecRand[model_name], ls='--', color=color)
+
+    axes[0].plot(metrics[model_name]['FPR'], metrics[model_name]['FPR'], ls='--', color='black')
+    axes[0].set_title('ROC', size=20)
+    axes[0].set(xlabel='FPR', ylabel='TPR')
+
+    axes[1].set_title('Precision-Recall', size=20)
+    axes[1].set(xlabel='TPR', ylabel='Precision')
+
+    for ax in axes:
+      ax.set(xlim=[0, 1], ylim=[0, 1])
+    fig.subplots_adjust(wspace=0.25)
+    fig.legend(loc='upper right', bbox_to_anchor=(1.3, 0.9), framealpha=0)
+    plt.show()
+    
+    return axes
+    
