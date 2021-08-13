@@ -17,7 +17,13 @@ def label(pred_outputs, threshold=None):
     if threshold is None:
         threshold = filters.threshold_otsu(pred_outputs)
     if isinstance(threshold, (int, np.integer, float, np.floating)):
-        return measure.label(pred_outputs > threshold).astype(int)
+        if pred_outputs.ndim==2:
+            return measure.label(pred_outputs > threshold)
+        
+        labels = np.zeros(pred_outputs.shape, dtype=np.uint8)
+        for i in range(labels.shape[0]):
+            labels[i] = measure.label(pred_outputs[i] > threshold)
+        return labels
     
     if len(pred_outputs)==len(threshold):
         labels = np.zeros(pred_outputs.shape, dtype=np.uint8)
@@ -52,7 +58,7 @@ def fissionStatsStack(true_labels, pred_labels):
     if true_labels.ndim==2:
         return fissionStats(true_labels, pred_labels)
     
-    stats = np.zeros(3, dtype=np.int16)
+    stats = np.zeros(3, dtype=int)
     for true_lab, pred_lab in tqdm(zip(true_labels, pred_labels), total=true_labels.shape[0]):
         stats += fissionStats(true_lab, pred_lab)
     return stats
@@ -95,7 +101,7 @@ def confusion_matrix(outputs, predictions, threshold):
 def get_metrics(outputs, predictions, threshold):
     conf_matrix = confusion_matrix(outputs, predictions, threshold)
     
-    if isinstance(threshold, (int, float)):
+    if isinstance(threshold, (int, np.integer, float, np.floating)):
         tp = conf_matrix[0, 0]
         fn = conf_matrix[0, 1]
         fp = conf_matrix[1, 0]

@@ -43,8 +43,6 @@ def save_pkl(data, path, name, folder_name=None):
                 pickle.dump(file, open(filename, 'wb'))
             print('Done.')
         
-            
-    
 def load_pkl(path, name, folder_name=None, as_type=None):
     try:
         try:

@@ -5,13 +5,16 @@ from albumentations import Compose, Rotate, RandomRotate90, HorizontalFlip, Flip
 from tqdm import tqdm
 
 def augImg(input_img, output_img, labels, transform, noise_transform, **kwargs):
-    transformed = transform(image=input_img, image0=output_img, mask=labels)
+    input_mask = input_img>0
+    transformed = transform(image=input_img, image0=output_img, mask=labels, mask0=input_mask)
     transformed['image'] = noise_transform(image=transformed['image'])['image']  
-    aug_input_img, aug_output_img, aug_labels = transformed['image'], transformed['image0'], transformed['mask']
-    aug_fission_coords = preprocessing.fissionCoords(aug_labels)
+    
+    aug_input_img, aug_output_img, aug_labels, aug_input_mask = transformed['image']*transformed['mask0'], transformed['image0'], transformed['mask']
+    
+    aug_fission_coords = preprocessing.fissionCoords(aug_labels, aug_output_img)
     aug_output_img, aug_fission_props = preprocessing.prepareProc(aug_output_img, coords=aug_fission_coords, **kwargs)
     aug_labels = preprocessing.segmentFissions(aug_output_img, aug_fission_props)
-    return aug_input_img.astype(np.uint8), aug_output_img, aug_labels
+    return aug_input_img.astype(np.uint8), , aug_output_img, aug_labels
 
 def augStack(input_data, output_data, labels, transform, noise_transform, **kwargs):
     if input_data.ndim==2:
