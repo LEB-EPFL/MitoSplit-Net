@@ -102,8 +102,12 @@ def filterLabelsStack(labels, labels_to_keep):
     return labels_proc
     
 
-def prepareProc(img, sigma=1, dilation_nb_sigmas=2, threshold=0, coords=None):
-  """Smoothed probability map of divisions"""
+def prepareProc(img, sigma=1, dilation_nb_sigmas=2, threshold=0, coords=None, mode='same'):
+  """Smoothed probability map of divisions. 
+  Modes
+  - 'same': every fission site is assigned the same gaussian intensity profile
+  - 'mean': very fission site is assigned a different gaussian intensity profile, which maximum value is given by its mean intensity"""
+    
   mask = segmentation.clear_border(img>0) #Remove objects in contact with the border
   img_proc = img*mask
   labels = distance_watershed(img_proc, sigma=0.1*sigma, coords=coords)
@@ -118,7 +122,13 @@ def prepareProc(img, sigma=1, dilation_nb_sigmas=2, threshold=0, coords=None):
         fission_props['weighted_centroid-0'] = fission_props['weighted_centroid-0'].round().astype(int)
         fission_props['weighted_centroid-1'] = fission_props['weighted_centroid-1'].round().astype(int)
         #Add a dot in each fission site
-        img_proc[(fission_props['weighted_centroid-0'], fission_props['weighted_centroid-1'])] = 1 
+        fissions_coords = (fission_props['weighted_centroid-0'], fission_props['weighted_centroid-1'])
+        if mode=='same':
+            img_proc[fissions_coords] = 1 
+        elif mode=='mean':
+            img_proc[fissions_coords] = img[fissions_coords] 
+        else:
+            raise ValueError("'%s' is not a supported mode. Available modes are 'same', 'mean'"%mode)
         #Increase minimum spot size
         dilation_radius = round(dilation_nb_sigmas*sigma)
         mask = morphology.binary_dilation(img_proc, morphology.disk(dilation_radius)) 
@@ -128,6 +138,7 @@ def prepareProc(img, sigma=1, dilation_nb_sigmas=2, threshold=0, coords=None):
         img_proc = (img_proc-img_proc.min())/(img_proc.max()-img_proc.min())
         return img_proc, fission_props
   return img_proc, {}
+
 
 def prepareStack(stack, **kwargs):
   """Apply prepareProc to all of the images in stack"""
