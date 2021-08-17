@@ -41,7 +41,7 @@ def fissionStats(true_labels, pred_labels):
         for true_fission in np.unique(true_labels)[1:]: #Positives, first label is the bg_label=0
             overlapping_fissions = np.unique(pred_labels[true_labels==true_fission]) 
             overlapping_fissions = overlapping_fissions[overlapping_fissions!=0] #All of the pred_labels that overlap with true_fission
-            if len(overlapping_fissions)>0: 
+            if len(overlapping_fissions)>0:
                 TP += 1  #Add a TP if there is at least one pred_label that overlaps with the true fission
                 for pred_fission in overlapping_fissions:
                     used_pred_labels[pred_labels==pred_fission] = True #Register used labels in a mask
