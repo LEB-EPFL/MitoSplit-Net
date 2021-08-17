@@ -20,7 +20,7 @@ def augStack(input_data, output_data, labels, transform, noise_transform, **kwar
     if input_data.ndim==2:
         return augImg(input_data, output_data, labels, transform, noise_transform, **kwargs)
 
-    aug_input_data = np.zeros(input_data.shape, dtype=np.float32)
+    aug_input_data = np.zeros(input_data.shape, dtype=np.uint8)
     aug_output_data = np.zeros(output_data.shape, dtype=np.float32)
     aug_labels = np.zeros(labels.shape, dtype=np.uint8)
     
