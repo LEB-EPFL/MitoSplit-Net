@@ -36,29 +36,35 @@ def label(pred_outputs, threshold=None):
 def fissionStats(true_labels, pred_labels):
     """Calculates TP, FP and FN of detected fissions (pred_labels) by comparing them to true fissions (true_labels)."""
     TP, FN, FP = 0, 0, 0
+    TP_px, FN_px, FP_px = 0, 0, 0
     used_pred_labels = np.zeros(pred_labels.shape, dtype=bool) #Mask of labels
+    pred_mask = pred_labels>0
     if np.any(true_labels!=0):
-        for true_fission in np.unique(true_labels)[1:]: #Positives, first label is the bg_label=0
-            overlapping_fissions = np.unique(pred_labels[true_labels==true_fission]) 
-            overlapping_fissions = overlapping_fissions[overlapping_fissions!=0] #All of the pred_labels that overlap with true_fission
-            if len(overlapping_fissions)>0:
+        for true_fission in np.unique(true_labels)[1:]: #Positives, first label is skipped as it corresponds to background
+            true_mask = true_labels==true_fission
+            overlapping_fissions = np.unique(pred_labels[true_mask]) #All of the pred_labels that overlap with true_fission
+            overlapping_fissions = overlapping_fissions[overlapping_fissions!=0] #Remove bg_label
+            if len(overlapping_fissions)>0: 
                 TP += 1  #Add a TP if there is at least one pred_label that overlaps with the true fission
+                TP_px += (true_mask & pred_mask).sum()
                 for pred_fission in overlapping_fissions:
                     used_pred_labels[pred_labels==pred_fission] = True #Register used labels in a mask
             else:
                 FN += 1 #Add a FN if the true fission was not detected
+                FN_px += (true_mask & ~pred_mask).sum()
         remaining_pred_labels = np.unique(pred_labels[~used_pred_labels]) #Keep only pred_labels that are not in contact with true_labels
-        remaining_pred_labels = remaining_pred_labels[remaining_pred_labels!=0]
+        remaining_pred_labels = remaining_pred_labels[remaining_pred_labels!=0] #Remove bg_label
         if len(remaining_pred_labels)>0:
-            FP = len(remaining_pred_labels) #Remove bg_label=0 (index=0) and add the remaining_pred_labels as FP
-    return np.array([TP, FP, FN])
+            FP = len(remaining_pred_labels) #Add the remaining_pred_labels as FP
+            FP_px += (~true_mask & pred_mask).sum()
+    return np.array([TP, FP, FN, TP_px, FP_px, FN_px])
 
 def fissionStatsStack(true_labels, pred_labels):
     """Iterates fissionStats"""
     if true_labels.ndim==2:
         return fissionStats(true_labels, pred_labels)
     
-    stats = np.zeros(3, dtype=int)
+    stats = np.zeros(6, dtype=int)
     for true_lab, pred_lab in tqdm(zip(true_labels, pred_labels), total=true_labels.shape[0]):
         stats += fissionStats(true_lab, pred_lab)
     return stats
