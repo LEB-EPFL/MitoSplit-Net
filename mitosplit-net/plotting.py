@@ -126,7 +126,7 @@ def plot_metrics_comparison(metrics, color=None, title=None, ylim=None, ax=None,
   for j, metric_name in enumerate(metrics):
     vals = metrics[metric_name]
     ax.bar(i + width*(j-(n-1)/2), vals, width=width, align='center', 
-            color=color[j], edgecolor='white', label=metric_name, **kwargs)
+            color=color[j], label=metric_name, **kwargs)
 
   ax.set_title(title, size=24)
   ax.set_xticks(i)
