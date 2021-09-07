@@ -105,8 +105,8 @@ def filterLabelsStack(labels, labels_to_keep):
 def prepareProc(img, sigma=1, dilation_nb_sigmas=2, threshold=0, coords=None, mode='same'):
   """Smoothed probability map of divisions. 
   Modes
-  - 'same': every fission site is assigned the same gaussian intensity profile
-  - 'mean': very fission site is assigned a different gaussian intensity profile, which maximum value is given by its mean intensity"""
+  - 'same': every fission is assigned the same gaussian intensity profile
+  - 'max': every fission has a different gaussian profile, scaled by its maximum intensity"""
     
   mask = segmentation.clear_border(img>0) #Remove objects in contact with the border
   img_proc = img*mask
@@ -114,8 +114,8 @@ def prepareProc(img, sigma=1, dilation_nb_sigmas=2, threshold=0, coords=None, mo
   labels = morphology.remove_small_objects(labels, 9) #Remove too small objects
   img_proc = np.zeros(img.shape, dtype=np.float32)
   if np.any(labels!=0): 
-    fission_props = measure.regionprops_table(labels, intensity_image=img, properties=['label', 'mean_intensity'])
-    labels_to_keep = fission_props['label'][fission_props['mean_intensity']>threshold]
+    fission_props = measure.regionprops_table(labels, intensity_image=img, properties=['label', 'max_intensity'])
+    labels_to_keep = fission_props['label'][fission_props['max_intensity']>threshold]
     if len(labels_to_keep)>0:
         labels = filterLabels(labels, labels_to_keep)
         fission_props = measure.regionprops_table(labels, intensity_image=img, properties=['weighted_centroid', 'equivalent_diameter'])
@@ -125,10 +125,10 @@ def prepareProc(img, sigma=1, dilation_nb_sigmas=2, threshold=0, coords=None, mo
         fissions_coords = (fission_props['weighted_centroid-0'], fission_props['weighted_centroid-1'])
         if mode=='same':
             img_proc[fissions_coords] = 1 
-        elif mode=='mean':
+        elif mode=='max':
             img_proc[fissions_coords] = img[fissions_coords] 
         else:
-            raise ValueError("'%s' is not a supported mode. Available modes are 'same', 'mean'"%mode)
+            raise ValueError("'%s' is not a supported mode. Available modes are 'same', 'max'"%mode)
         #Increase minimum spot size
         dilation_radius = round(dilation_nb_sigmas*sigma)
         mask = morphology.binary_dilation(img_proc, morphology.disk(dilation_radius)) 

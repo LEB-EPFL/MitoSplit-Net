@@ -57,6 +57,11 @@ def fissionStats(true_labels, pred_labels):
         if len(remaining_pred_labels)>0:
             FP = len(remaining_pred_labels) #Add the remaining_pred_labels as FP
             FP_px += (~true_mask & pred_mask).sum()
+    else:
+        remaining_pred_labels = np.unique(pred_labels[pred_mask])
+        if len(remaining_pred_labels)>0:
+            FP = len(remaining_pred_labels) #Add the remaining_pred_labels as FP
+            FP_px += pred_labels[pred_mask].sum()
     return np.array([TP, FP, FN, TP_px, FP_px, FN_px])
 
 def fissionStatsStack(true_labels, pred_labels):
@@ -119,17 +124,27 @@ def get_metrics(outputs, predictions, threshold):
         tn = conf_matrix[:, 1, 1]
     
     metrics = {'binary accuracy': (tp+tn)/(tp+tn+fp+fn), 
-               'precision': tp/(tp+fp), 
+               'precision': tp/(tp+fp),
                'TPR': tp/(tp+fn),
                'FPR': fp/(fp+tn)}
     metrics['F1-score'] = 2*(metrics['precision']*metrics['TPR'])/(metrics['precision']+metrics['TPR'])
     return metrics
 
-def detection_match(y_true, y_pred, threshold=0.99):
+def detection_match(y_true, y_pred, threshold=None):
+    if threshold is None:
+        threshold = filters.threshold_otsu(y_pred)
     total = y_true.shape[0]
     isTrue = np.any(np.any(y_true, axis=-1), axis=-1)
-    isPred = np.any(np.any(y_pred>=threshold, axis=1), axis=1)
-    return np.sum(np.equal(isPred[None, :], isTrue), axis=1)/total
+
+    if isinstance(threshold, (int, np.integer, float, np.floating)):
+        isPred = np.any(np.any(y_pred>threshold, axis=-1), axis=-1)
+        return np.sum(np.equal(isPred, isTrue))/total
+    else:  
+        nb_thresholds = len(threshold)
+        isPred = np.zeros((nb_thresholds, *isTrue.shape), dtype=bool)
+        for i in tqdm(range(nb_thresholds), total=nb_thresholds):
+            isPred[i] = np.any(np.any(y_pred>threshold[i], axis=-1), axis=-1)
+        return np.sum(np.equal(isPred, isTrue), axis=1)/total
 
 def get_AUC(metrics):
     AUC = {}
