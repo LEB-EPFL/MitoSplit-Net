@@ -128,7 +128,7 @@ def save_model(model, path, name, folder_name=None):
                 model[model_name].save(filename)
             print('Done.')
         else:
-            for model_name, title in zip(data, name):
+            for model_name, title in zip(model, name):
                 filename = path+title+'.h5'
                 print('\nSaving '+filename)
                 model[model_name].save(filename)
