@@ -103,7 +103,7 @@ def filterLabelsStack(labels, labels_to_keep):
     return labels_proc
     
 
-def prepareProc(img, sigma=1, dilation_nb_sigmas=2, threshold=0, coords=None, mode='same'):
+def prepareProc(img, sigma=1, dilation_nb_sigmas=2, threshold=0, coords=None, mode='max', vmax=255):
     """Smoothed probability map of divisions. 
     Modes
     - 'same': every fission is assigned the same gaussian intensity profile
@@ -124,11 +124,13 @@ def prepareProc(img, sigma=1, dilation_nb_sigmas=2, threshold=0, coords=None, mo
             fission_props['weighted_centroid-0'] = fission_props['weighted_centroid-0'].round().astype(int)
             fission_props['weighted_centroid-1'] = fission_props['weighted_centroid-1'].round().astype(int)
             #Add a dot in each fission site
-            fissions_coords = (fission_props['weighted_centroid-0'], fission_props['weighted_centroid-1'])
+            fission_coords = (fission_props['weighted_centroid-0'], fission_props['weighted_centroid-1'])
             if mode=='same':
-                img_proc[fissions_coords] = 1 
+                img_proc[fission_coords] = 1 
             elif mode=='max':
-                img_proc[fissions_coords] = img[fissions_coords] 
+                for y, x in zip(*fission_coords):
+                    roi_mask = labels==labels[y, x]
+                    img_proc[y, x] = img[roi_mask].max()   
             else:
                 raise ValueError("'%s' is not a supported mode. Available modes are 'same', 'max'"%mode)
             #Increase minimum spot size
@@ -137,7 +139,7 @@ def prepareProc(img, sigma=1, dilation_nb_sigmas=2, threshold=0, coords=None, mo
             #Intensity smoothing
             img_proc = filters.gaussian(img_proc, sigma, truncate=4+dilation_radius)*mask 
             #Normalization
-            img_proc = (img_proc-img_proc.min())/(img_proc.max()-img_proc.min())
+            img_proc = img_proc*img.max()/img_proc.max()/vmax
             return img_proc, fission_props
     return img_proc, {}
 
@@ -153,7 +155,7 @@ def prepareStack(stack, **kwargs):
         stack_proc[i], fission_props[i] = prepareProc(img, **kwargs)
     return stack_proc, fission_props
 
-def track(fission_props, num_diam=1, time_threshold=3):
+def track(fission_props, num_diam=1, min_event_duration=3):
     """Returns a list of trajectories.
     Parameters
     ----------
@@ -178,31 +180,31 @@ def track(fission_props, num_diam=1, time_threshold=3):
     T = []
 
     num_frames = len(track_props)
-    for j in range(num_frames-1):
-        source = track_props[j]
+    for t0 in range(num_frames-1):
+        source = track_props[t0]
         for src in source:
             #Initialize trajectory and fission size
-            T_ij = src[:2]
-            T += [T_ij[None, :]]
-            sigma_ij = src[2] 
-            for t in range(j+1, num_frames):
-                target = track_props[t] #List of possible new positions
+            x_src = src[:2]
+            T += [x_src[None, :]]
+            sigma_src = src[2] 
+            for t1 in range(t0+1, num_frames):
+                target = track_props[t1] #List of possible new positions
 
                 if len(target)>0:
                     #Find nearest target
-                    x_m = target[:, :2]
-                    d = np.linalg.norm(x_m-T_ij, axis=1)/sigma_ij
-                    imin = np.argmin(d)
+                    x_target = target[:, :2]
+                    distance = np.linalg.norm(x_target-x_src, axis=1)/sigma_src #Distance between source (t0) and target (t1)
+                    i_target = np.argmin(distance)
 
-                    #If nearest target overlaps with src, then add it to the trajectory and remove it from the list of sources.
+                    #If nearest target overlaps with src, add it to the trajectory and remove it from track_props.
                     #Else, end trajectory.
-                    if d[imin]<num_diam:
-                        T[-1] = np.append(T[-1], T_ij[None, :], axis=0)
+                    if distance[i_target]<num_diam:
                         #Update position and sigma
-                        T_ij = x_m[imin]
-                        sigma_ij = target[imin, 2]
-
-                        track_props[t] = np.delete(track_props[t], imin, axis=0)
+                        x_src = x_target[i_target]
+                        sigma_src = target[i_target, 2]
+                        
+                        T[-1] = np.append(T[-1], x_src[None, :], axis=0)
+                        track_props[t1] = np.delete(track_props[t1], i_target, axis=0)
                     else:
                         break
                 #End trajectory if there are no fission sites in the next frame
@@ -210,10 +212,10 @@ def track(fission_props, num_diam=1, time_threshold=3):
                     break
             #Save initial and final time
             event_duration = len(T[-1])
-            if event_duration<time_threshold:
+            if event_duration<min_event_duration:
                 T.pop(-1)
             else:                
-                T[-1] = ((j, j+event_duration), T[-1])
+                T[-1] = ((t0, t0+event_duration), T[-1])
     
     return T
 
@@ -236,32 +238,67 @@ def get_event_score(output, labels, T):
         track_labels[-1] = np.array(track_labels[-1]).astype(np.uint8)
     return time, track_labels, event_score
 
-def _delFissions(new_output, new_labels, time, track_labels, trigger_signal):
-    if np.any(trigger_signal):
-        time_del = time[trigger_signal]
-        labels_del = track_labels[trigger_signal]
+def _selFissions(output, labels, new_output, new_labels, track_time, track_labels, add_signal):
+    if np.any(add_signal):
+        time_add = track_time[add_signal]
+        labels_add = track_labels[add_signal]
+        for t, roi in zip(time_add, labels_add):
+            roi_mask = labels[t]==roi
+            new_output[t][roi_mask] = output[t][roi_mask]
+            new_labels[t][roi_mask] = roi
+    return new_output, new_labels
+
+def selFissions(output, labels, track_time, track_labels, event_score, threshold=100, mode='thresholding'):    
+    if mode in ['thresholding', 'derivative']:
+        new_labels = np.zeros_like(labels)
+        new_output = np.zeros_like(output)
+        
+        if mode=='thresholding':
+            for time, lab, score in zip(track_time, track_labels, event_score):
+                isHigh = (score>=threshold)
+                new_output, new_labels = _selFissions(output, labels, new_output, new_labels, time, lab, isHigh)
+        else:
+            for time, lab, score in zip(track_time, track_labels, event_score):
+                isHigh = (score[:-1]>=threshold)
+                if np.any(isHigh):
+                    isHigh = isHigh & (np.diff(score).astype(np.int8)>=0)
+                isHigh = np.append(isHigh, isHigh[-1])
+                new_output, new_labels = _selFissions(output, labels, new_output, new_labels, time, lab, isHigh)
+        return new_output, new_labels
+    
+    else:
+        raise ValueError("'%s' is not a valid value. Supported modes are 'thresholding', 'derivative'."%mode)
+
+
+def _delFissions(new_output, new_labels, track_time, track_labels, del_signal):
+    if np.any(del_signal):
+        time_del = track_time[del_signal]
+        labels_del = track_labels[del_signal]
         for t, lab in zip(time_del, labels_del):
             del_mask = new_labels[t]==lab
             new_output[t][del_mask] = 0
             new_labels[t][del_mask] = 0
+    
     return new_output, new_labels
 
 def delFissions(output, labels, time, track_labels, event_score, threshold=100, mode='thresholding'):    
     if mode in ['thresholding', 'derivative']:
         new_labels = labels.copy()
         new_output = output.copy()
+        
         if mode=='thresholding':
-            for t, labels, score in zip(time, track_labels, event_score):
-                temp_filter = (score<threshold)
-                new_output, new_labels = _delFissions(new_output, new_labels, t, labels, temp_filter)
+            for t, lab, score in zip(time, track_labels, event_score):
+                isHigh = (score>=threshold)
+                new_output, new_labels = _delFissions(new_output, new_labels, t, lab, ~isHigh)
         else:
             for t, labels, score in zip(time, track_labels, event_score):
-                temp_filter = (score[:-1]<threshold)
-                if np.any(temp_filter):
-                    temp_filter = temp_filter | (np.diff(score).astype(np.int8)<0)
-                temp_filter = np.append(temp_filter, temp_filter[-1])
-                new_output, new_labels = _delFissions(new_output, new_labels, t, labels, temp_filter)
+                isHigh = (score[:-1]>=threshold)
+                if np.any(isHigh):
+                    isHigh = isHigh & (np.diff(score).astype(np.int8)>=0)
+                isHigh = np.append(isHigh, isHigh[-1])
+                new_output, new_labels = _delFissions(new_output, new_labels, t, labels, ~isHigh)
         return new_output, new_labels
+    
     else:
         raise ValueError("'%s' is not a valid value. Supported modes are 'thresholding', 'derivative'."%mode)
     
