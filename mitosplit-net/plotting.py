@@ -23,7 +23,6 @@ def plot_merge(input_img, output_img, cmap=None, title='Mito + GT',
   ax.imshow(input_img, cmap=cmap[0])
   ax.imshow(output_img, cmap=cmap[1], alpha=alpha)
   ax.set(xticks=[], yticks=[])
-  ax.axis('off')
   return ax
   
 def plot_comparison(input_img, output_img, cmap = ['gray', 'inferno'],
