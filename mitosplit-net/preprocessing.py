@@ -248,61 +248,10 @@ def _selFissions(output, labels, new_output, new_labels, track_time, track_label
             new_labels[t][roi_mask] = roi
     return new_output, new_labels
 
-def selFissions(output, labels, track_time, track_labels, event_score, threshold=100, mode='thresholding'):    
-    if mode in ['thresholding', 'derivative']:
-        new_labels = np.zeros_like(labels)
-        new_output = np.zeros_like(output)
-        
-        if mode=='thresholding':
-            for time, lab, score in zip(track_time, track_labels, event_score):
-                isHigh = (score>=threshold)
-                new_output, new_labels = _selFissions(output, labels, new_output, new_labels, time, lab, isHigh)
-        else:
-            for time, lab, score in zip(track_time, track_labels, event_score):
-                isHigh = (score[:-1]>=threshold)
-                if np.any(isHigh):
-                    isHigh = isHigh & (np.diff(score).astype(np.int8)>=0)
-                isHigh = np.append(isHigh, isHigh[-1])
-                new_output, new_labels = _selFissions(output, labels, new_output, new_labels, time, lab, isHigh)
-        return new_output, new_labels
-    
-    else:
-        raise ValueError("'%s' is not a valid value. Supported modes are 'thresholding', 'derivative'."%mode)
-
-
-def _delFissions(new_output, new_labels, track_time, track_labels, del_signal):
-    if np.any(del_signal):
-        time_del = track_time[del_signal]
-        labels_del = track_labels[del_signal]
-        for t, lab in zip(time_del, labels_del):
-            del_mask = new_labels[t]==lab
-            new_output[t][del_mask] = 0
-            new_labels[t][del_mask] = 0
-    
+def selFissions(output, labels, track_time, track_labels, event_score, threshold=100):    
+    new_labels = np.zeros_like(labels)
+    new_output = np.zeros_like(output)
+    for time, lab, score in zip(track_time, track_labels, event_score):
+        isHigh = (score>=threshold)
+        new_output, new_labels = _selFissions(output, labels, new_output, new_labels, time, lab, isHigh)
     return new_output, new_labels
-
-def delFissions(output, labels, time, track_labels, event_score, threshold=100, mode='thresholding'):    
-    if mode in ['thresholding', 'derivative']:
-        new_labels = labels.copy()
-        new_output = output.copy()
-        
-        if mode=='thresholding':
-            for t, lab, score in zip(time, track_labels, event_score):
-                isHigh = (score>=threshold)
-                new_output, new_labels = _delFissions(new_output, new_labels, t, lab, ~isHigh)
-        else:
-            for t, labels, score in zip(time, track_labels, event_score):
-                isHigh = (score[:-1]>=threshold)
-                if np.any(isHigh):
-                    isHigh = isHigh & (np.diff(score).astype(np.int8)>=0)
-                isHigh = np.append(isHigh, isHigh[-1])
-                new_output, new_labels = _delFissions(new_output, new_labels, t, labels, ~isHigh)
-        return new_output, new_labels
-    
-    else:
-        raise ValueError("'%s' is not a valid value. Supported modes are 'thresholding', 'derivative'."%mode)
-    
-    
-        
-            
-        
