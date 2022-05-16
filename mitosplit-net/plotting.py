@@ -172,7 +172,6 @@ def plot_performance_curves(metrics, output_test, colors=None, axes=None):
       ax.set(xlim=[0, 1], ylim=[0, 1])
     fig.subplots_adjust(wspace=0.25)
     fig.legend(loc='upper right', bbox_to_anchor=(1.3, 0.9), framealpha=0)
-    plt.show()
-    
+       
     return axes
     
