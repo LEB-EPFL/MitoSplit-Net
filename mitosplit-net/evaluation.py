@@ -3,17 +3,21 @@ from skimage import filters, measure
 from tqdm import tqdm
 import tensorflow as tf
 
+#Binary classification of predictions (TP, FP and FN)
+
 def predict(input_test, model):
+    """Returns model predictions on input test dataset."""
     try:
         return model.predict(input_test)[:, :, :, 0].astype(np.float32)
     except:
         nb_models = len(model)
         pred_output_test = np.zeros((nb_models, *input_test.shape), dtype=np.float32)
-        for model_id, model_name in enumerate(models):
+        for model_id, model_name in enumerate(model):
             pred_output_test[model_id] = model[model_name].predict(input_test)[:, :, :, 0]
         return pred_output_test
 
 def label(pred_outputs, threshold=None):
+    """Performs thresholding on pred_output and labels non-overlapping regions of interest"""
     if threshold is None:
         threshold = filters.threshold_otsu(pred_outputs)
     if isinstance(threshold, (int, np.integer, float, np.floating)):
@@ -31,10 +35,10 @@ def label(pred_outputs, threshold=None):
             labels[i] = measure.label(pred_outputs[i] > threshold[i])
         return labels
     else:
-        raise ValueError("'pred_outpus' and 'threshold' lenghts don't match.")
+        raise ValueError("'pred_outputs' and 'threshold' lenghts don't match.")
 
 def fissionStats(true_labels, pred_labels):
-    """Calculates TP, FP and FN of detected fissions (pred_labels) by comparing them to true fissions (true_labels)."""
+    """Calculates TP, FP and FN of predicted areas of interest (pred_labels) by comparing them to the ground truth (true_labels)."""
     TP, FN, FP = 0, 0, 0
     TP_px, FN_px, FP_px = 0, 0, 0
     used_pred_labels = np.zeros(pred_labels.shape, dtype=bool) #Mask of labels
@@ -70,7 +74,7 @@ def fissionStatsStack(true_labels, pred_labels):
         return fissionStats(true_labels, pred_labels)
     
     stats = np.zeros(6, dtype=int)
-    for true_lab, pred_lab in tqdm(zip(true_labels, pred_labels), total=true_labels.shape[0]):
+    for true_lab, pred_lab in zip(true_labels, pred_labels):
         stats += fissionStats(true_lab, pred_lab)
     return stats
       
@@ -80,7 +84,7 @@ def confusion_matrix(outputs, predictions, threshold):
     nb_pixels = out_binary.size
 
     if isinstance(threshold, (int, np.integer, float, np.floating)):
-        conf_matrix = np.zeros((2, 2), dtpye=int)
+        conf_matrix = np.zeros((2, 2))
         pred_binary = predictions>threshold
 
         tp_mask = out_binary & pred_binary
@@ -94,7 +98,7 @@ def confusion_matrix(outputs, predictions, threshold):
         return conf_matrix
 
     nb_thr = len(threshold)
-    conf_matrix = np.zeros((nb_thr, 2, 2), dtype=int)
+    conf_matrix = np.zeros((nb_thr, 2, 2))
     for i, thr in tqdm(enumerate(threshold), total=nb_thr):
         pred_binary = predictions>thr
     
@@ -108,6 +112,32 @@ def confusion_matrix(outputs, predictions, threshold):
         conf_matrix[i, 1, 1] = nb_pixels - conf_matrix[i, 0, 0] - conf_matrix[i, 0, 1] - conf_matrix[i, 1, 0] #True Negatives
     
     return conf_matrix
+
+
+#Evaluation metrics and optimal threshold for network predictions as the one that maximizes F1-score
+def get_precision(tp, fp): 
+    return tp/(tp+fp)
+    
+def get_tpr(tp, fn):
+    return tp/(tp+fn)
+
+def get_f1_score(precision, tpr):
+    return 2*(precision*tpr)/(precision+tpr)
+
+def get_f1_curve(true_labels, pred_output, threshold): 
+    f1_score = []
+    
+    for thr in tqdm(threshold, total=len(threshold)):
+        pred_labels = label(pred_output, threshold=thr)
+        tp, fp, fn = fissionStatsStack(true_labels, pred_labels)[:3]
+        precision = get_precision(tp, fp)
+        tpr = get_tpr(tp, fn)
+        f1_score += [get_f1_score(precision, tpr)]
+    
+    return np.array(f1_score)
+
+def get_optimal_threshold(threshold, f1_score):
+    return threshold[np.nanargmax(f1_score)]
 
 def get_metrics(outputs, predictions, threshold):
     conf_matrix = confusion_matrix(outputs, predictions, threshold)
