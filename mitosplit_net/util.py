@@ -179,32 +179,3 @@ def load_model(path, name, folder_name=None, as_type=None, all_models=False):
                 return dict(zip(name, model))
         else:
             return model
-    
-    
-def activity_percent(binary_output):
-    """Percentage of active or inactive periods in binary_output"""
-    N = len(binary_output)
-    yes_counts = np.sum(binary_output)
-    no_counts = N-yes_counts
-    return 100*yes_counts/N, 100*no_counts/N
-
-def norm_histogram(bins, rv):
-    """Normalized histogram with binomial errors."""
-    b = np.diff(bins)
-    hist = np.histogram(rv, bins)[0]
-    N = int(np.sum(hist))
-    M = (b*hist).sum() #normalización
-    hist = hist/M
-    f_i = b*hist
-    error = np.sqrt(N*f_i*(1-f_i))/M
-    bincenters = (bins[1:] + bins[:-1])/2
-    return bincenters, hist, error
-
-def sequence_length(binary_signal):
-    # make sure all runs of ones are well-bounded
-    bounded = np.hstack(([0], binary_signal, [0]))
-    # get 1 at run starts and -1 at run ends
-    difs = np.diff(bounded)
-    starts, = np.where(difs > 0)
-    ends, = np.where(difs < 0)
-    return ends - starts
