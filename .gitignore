@@ -1,0 +1,3 @@
+*.egg-info
+__pycache__/
+mitosplit_net/__pycache__/
