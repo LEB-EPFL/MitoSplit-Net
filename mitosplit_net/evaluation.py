@@ -77,42 +77,6 @@ def fissionStatsStack(true_labels, pred_labels):
     for true_lab, pred_lab in zip(true_labels, pred_labels):
         stats += fissionStats(true_lab, pred_lab)
     return stats
-      
-def confusion_matrix(outputs, predictions, threshold):
-    """Confusion matrix of fission detections """
-    out_binary = outputs>0
-    nb_pixels = out_binary.size
-
-    if isinstance(threshold, (int, np.integer, float, np.floating)):
-        conf_matrix = np.zeros((2, 2))
-        pred_binary = predictions>threshold
-
-        tp_mask = out_binary & pred_binary
-        fn_mask = out_binary & (~pred_binary)
-        fp_mask = (~out_binary) & pred_binary
-
-        conf_matrix[0, 0] = tp_mask.sum() #True Positives
-        conf_matrix[0, 1] = fn_mask.sum() #False Negatives
-        conf_matrix[1, 0] = fp_mask.sum() #False Positives
-        conf_matrix[1, 1] = nb_pixels - conf_matrix[0, 0] - conf_matrix[0, 1] - conf_matrix[1, 0] #True Negatives
-        return conf_matrix
-
-    nb_thr = len(threshold)
-    conf_matrix = np.zeros((nb_thr, 2, 2))
-    for i, thr in tqdm(enumerate(threshold), total=nb_thr):
-        pred_binary = predictions>thr
-    
-        tp_mask = out_binary & pred_binary
-        fn_mask = out_binary & (~pred_binary)
-        fp_mask = (~out_binary) & pred_binary
-
-        conf_matrix[i, 0, 0] = tp_mask.sum() #True Positives
-        conf_matrix[i, 0, 1] = fn_mask.sum() #False Negatives
-        conf_matrix[i, 1, 0] = fp_mask.sum() #False Positives
-        conf_matrix[i, 1, 1] = nb_pixels - conf_matrix[i, 0, 0] - conf_matrix[i, 0, 1] - conf_matrix[i, 1, 0] #True Negatives
-    
-    return conf_matrix
-
 
 #Evaluation metrics and optimal threshold for network predictions as the one that maximizes F1-score
 def get_precision(tp, fp): 
@@ -139,27 +103,6 @@ def get_f1_curve(true_labels, pred_output, threshold):
 def get_optimal_threshold(threshold, f1_score):
     return threshold[np.nanargmax(f1_score)]
 
-def get_metrics(outputs, predictions, threshold):
-    conf_matrix = confusion_matrix(outputs, predictions, threshold)
-    
-    if isinstance(threshold, (int, np.integer, float, np.floating)):
-        tp = conf_matrix[0, 0]
-        fn = conf_matrix[0, 1]
-        fp = conf_matrix[1, 0]
-        tn = conf_matrix[1, 1]
-    else:
-        tp = conf_matrix[:, 0, 0]
-        fn = conf_matrix[:, 0, 1]
-        fp = conf_matrix[:, 1, 0]
-        tn = conf_matrix[:, 1, 1]
-    
-    metrics = {'binary accuracy': (tp+tn)/(tp+tn+fp+fn), 
-               'precision': tp/(tp+fp),
-               'TPR': tp/(tp+fn),
-               'FPR': fp/(fp+tn)}
-    metrics['F1-score'] = 2*(metrics['precision']*metrics['TPR'])/(metrics['precision']+metrics['TPR'])
-    return metrics
-
 def detection_match(y_true, y_pred, threshold=None):
     if threshold is None:
         threshold = filters.threshold_otsu(y_pred)
@@ -175,19 +118,3 @@ def detection_match(y_true, y_pred, threshold=None):
         for i in tqdm(range(nb_thresholds), total=nb_thresholds):
             isPred[i] = np.any(np.any(y_pred>threshold[i], axis=-1), axis=-1)
         return np.sum(np.equal(isPred, isTrue), axis=1)/total
-
-def get_AUC(metrics):
-    AUC = {}
-    for model_name in metrics:
-        x = metrics[model_name]['TPR']
-        y = metrics[model_name]['precision']
-
-        nan_mask = (~np.isnan(x)) & (~np.isnan(y))
-
-        x = x[nan_mask]
-        y = y[nan_mask]
-
-        id_sort = np.argsort(x)
-        AUC[model_name] = np.trapz(y[id_sort], x=x[id_sort])
-    
-    return AUC
