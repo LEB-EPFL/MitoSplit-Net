@@ -1,0 +1,137 @@
+attachments:
+  files:
+    -
+authors:
+  - affiliation:
+    name:
+cite:
+  - text:
+    url:
+
+config:
+  deepimagej:
+    allow_tiling: true
+    model_keys: null
+    prediction:
+      postprocess:
+        - spec: null
+      preprocess:
+        - kwargs:
+          spec:
+    pyramidal_model: false
+    test_information:
+      inputs:
+        - name:
+          pixel_size:
+            x: 1
+            'y': 1
+          size: 128 x 128 x 2
+      memory_peak: null
+      outputs:
+        - name:
+          size: 128 x 128 x 1
+          type: image
+      runtime: null
+
+covers:
+  -
+description: Detection of mitochondrial divisions/constrictions
+documentation: README.md
+format_version: 0.4.4
+inputs:
+  - axes: cyx
+    data_range:
+      - 0
+      - 255
+    data_type: uint8
+    name: input0
+    preprocessing:
+      - kwargs:
+          axes: cyx
+          mode: per_sample
+        name: zero_mean_unit_variance
+    shape:
+      min:
+        - 2
+        - 128
+        - 128
+      step:
+        - 0
+        - 4
+        - 4
+license: CC-BY-4.0
+links:
+  - deepimagej/deepimagej
+  - imjoy/BioImageIO-Packager
+maintainers:
+  - github_user: santi-rodriguez
+    name: Santiago Nicolás Rodriguez Alvarez
+name: MitoSplit-Net
+outputs:
+  - axes: bcyx
+    data_range:
+      - -.inf
+      - .inf
+    data_type: float32
+    halo:
+      - 0
+      - 16
+      - 16
+    name: output0
+    shape:
+      offset:
+        - 0
+        - 0
+        - 0
+      reference_tensor: input0
+      scale:
+        - 2
+        - 1
+        - 1
+sample_inputs:
+  - sample_input_0.tif
+sample_outputs:
+  - sample_output_0.tif
+tags:
+  - fluorescence-light-microscopy
+  - mitochondria
+  - fission
+  - division
+  - event-driven acquisition
+  - event-detection
+  - unet
+  - keras
+  - 2d
+test_inputs:
+  - test_input_0.npy
+test_outputs:
+  - test_output_0.npy
+timestamp: '2021-12-07T18:43:26.889129'
+training_data:
+  id: ilastik/stradist_dsb_training_data
+type: model
+# weights:
+#   onnx:
+#     opset_version: 12
+#     sha256: df913b85947f5132bcdaf81d91af0963f60d44f4caf8a4fec672d96a2f327b44
+#     source: weights.onnx
+#   pytorch_state_dict:
+#     architecture: unet.py:UNet2d
+#     architecture_sha256: 7f5b15948e8e2c91f78dcff34fbf30af517073e91ba487f3edb982b948d099b3
+#     dependencies: conda:environment.yaml
+#     kwargs:
+#       depth: 4
+#       final_activation: Sigmoid
+#       gain: 2
+#       in_channels: 1
+#       initial_features: 64
+#       out_channels: 2
+#       postprocessing: null
+#       return_side_outputs: false
+#     sha256: 608f52cd7f5119f7a7b8272395b0c169714e8be34536eaf159820f72a1d6a5b7
+#     source: weights.pt
+#   torchscript:
+#     sha256: 8410950508655a300793b389c815dc30b1334062fc1dadb1e15e55a93cbb99a0
+#     source: weights-torchscript.pt
+version: 0.1.0
+rdf_source: ./rdf.yaml
