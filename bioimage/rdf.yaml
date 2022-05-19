@@ -1,12 +1,23 @@
 attachments:
   files:
-    -
+    - keras_model.h5
 authors:
-  - affiliation:
-    name:
+  - affiliation: EPFL
+    name: Santiago Nicolás Rodriguez Alvarez
+  - affiliation: EPFL
+    name: Dora Mahecic
+  - affiliation: EPFL
+    name: Willi L. Stepp
+  - affiliation: EPFL
+    name: Martin Weigert
+  - affiliation: EPFL
+    name: Suliana Manley
 cite:
-  - text:
-    url:
+  - text: Event-driven acquisition for content-enriched microscopy
+    url: https://www.biorxiv.org/content/10.1101/2021.10.04.463102v1
+  - text: Mitochondrial membrane tension governs fission
+    url: https://doi.org/10.1016/j.celrep.2021.108947
+git_repo: https://github.com/LEB-EPFL/MitoSplit-Net/
 
 config:
   deepimagej:
@@ -17,24 +28,25 @@ config:
         - spec: null
       preprocess:
         - kwargs:
-          spec:
+          spec: ij.IJ.runMacroFile
     pyramidal_model: false
     test_information:
       inputs:
-        - name:
+        - name: sample_input.tif
           pixel_size:
             x: 1
             'y': 1
           size: 128 x 128 x 2
       memory_peak: null
       outputs:
-        - name:
+        - name: sample_output.tif
           size: 128 x 128 x 1
           type: image
       runtime: null
 
 covers:
-  -
+  - sample_input.png
+  - sample_output.png
 description: Detection of mitochondrial divisions/constrictions
 documentation: README.md
 format_version: 0.4.4
@@ -47,9 +59,11 @@ inputs:
     name: input0
     preprocessing:
       - kwargs:
-          axes: cyx
+          axes: yxc
+          max_percentile: 99.8
+          min_percentile: 1
           mode: per_sample
-        name: zero_mean_unit_variance
+        name: scale_range
     shape:
       min:
         - 2
@@ -59,7 +73,7 @@ inputs:
         - 0
         - 4
         - 4
-license: CC-BY-4.0
+license: BSD-3-Clause
 links:
   - deepimagej/deepimagej
   - imjoy/BioImageIO-Packager
@@ -75,8 +89,8 @@ outputs:
     data_type: float32
     halo:
       - 0
-      - 16
-      - 16
+      - 4
+      - 4
     name: output0
     shape:
       offset:
@@ -106,32 +120,14 @@ test_inputs:
   - test_input_0.npy
 test_outputs:
   - test_output_0.npy
-timestamp: '2021-12-07T18:43:26.889129'
+timestamp: '2022-05-18T18:43:26.889129'
 training_data:
   id: ilastik/stradist_dsb_training_data
 type: model
-# weights:
-#   onnx:
-#     opset_version: 12
-#     sha256: df913b85947f5132bcdaf81d91af0963f60d44f4caf8a4fec672d96a2f327b44
-#     source: weights.onnx
-#   pytorch_state_dict:
-#     architecture: unet.py:UNet2d
-#     architecture_sha256: 7f5b15948e8e2c91f78dcff34fbf30af517073e91ba487f3edb982b948d099b3
-#     dependencies: conda:environment.yaml
-#     kwargs:
-#       depth: 4
-#       final_activation: Sigmoid
-#       gain: 2
-#       in_channels: 1
-#       initial_features: 64
-#       out_channels: 2
-#       postprocessing: null
-#       return_side_outputs: false
-#     sha256: 608f52cd7f5119f7a7b8272395b0c169714e8be34536eaf159820f72a1d6a5b7
-#     source: weights.pt
-#   torchscript:
-#     sha256: 8410950508655a300793b389c815dc30b1334062fc1dadb1e15e55a93cbb99a0
-#     source: weights-torchscript.pt
+weights:
+  keras_hdf5:
+    source: ./keras_model.h5
+    sha256: 27a54e66d24cebe2f4b11e2956a75fbf237736faa71102e10770ed4e2cd50620
+
 version: 0.1.0
 rdf_source: ./rdf.yaml
