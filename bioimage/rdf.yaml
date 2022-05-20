@@ -1,0 +1,133 @@
+attachments:
+  files:
+    - keras_model.h5
+authors:
+  - affiliation: EPFL
+    name: Santiago Nicolás Rodriguez Alvarez
+  - affiliation: EPFL
+    name: Dora Mahecic
+  - affiliation: EPFL
+    name: Willi L. Stepp
+  - affiliation: EPFL
+    name: Martin Weigert
+  - affiliation: EPFL
+    name: Suliana Manley
+cite:
+  - text: Event-driven acquisition for content-enriched microscopy
+    url: https://www.biorxiv.org/content/10.1101/2021.10.04.463102v1
+  - text: Mitochondrial membrane tension governs fission
+    url: https://doi.org/10.1016/j.celrep.2021.108947
+git_repo: https://github.com/LEB-EPFL/MitoSplit-Net/
+
+config:
+  deepimagej:
+    allow_tiling: true
+    model_keys: null
+    prediction:
+      postprocess:
+        - spec: null
+      preprocess:
+        - kwargs:
+          spec: ij.IJ.runMacroFile
+    pyramidal_model: false
+    test_information:
+      inputs:
+        - name: sample_input.tif
+          pixel_size:
+            x: 1
+            'y': 1
+          size: 128 x 128 x 2
+      memory_peak: null
+      outputs:
+        - name: sample_output.tif
+          size: 128 x 128 x 1
+          type: image
+      runtime: null
+
+covers:
+  - sample_input.png
+  - sample_output.png
+description: Detection of mitochondrial divisions/constrictions
+documentation: README.md
+format_version: 0.4.4
+inputs:
+  - axes: cyx
+    data_range:
+      - 0
+      - 255
+    data_type: uint8
+    name: input0
+    preprocessing:
+      - kwargs:
+          axes: yxc
+          max_percentile: 99.8
+          min_percentile: 1
+          mode: per_sample
+        name: scale_range
+    shape:
+      min:
+        - 2
+        - 128
+        - 128
+      step:
+        - 0
+        - 4
+        - 4
+license: BSD-3-Clause
+links:
+  - deepimagej/deepimagej
+  - imjoy/BioImageIO-Packager
+maintainers:
+  - github_user: santi-rodriguez
+    name: Santiago Nicolás Rodriguez Alvarez
+name: MitoSplit-Net
+outputs:
+  - axes: bcyx
+    data_range:
+      - -.inf
+      - .inf
+    data_type: float32
+    halo:
+      - 0
+      - 4
+      - 4
+    name: output0
+    shape:
+      offset:
+        - 0
+        - 0
+        - 0
+      reference_tensor: input0
+      scale:
+        - 2
+        - 1
+        - 1
+sample_inputs:
+  - sample_input_0.tif
+sample_outputs:
+  - sample_output_0.tif
+tags:
+  - fluorescence-light-microscopy
+  - mitochondria
+  - fission
+  - division
+  - event-driven acquisition
+  - event-detection
+  - unet
+  - keras
+  - 2d
+test_inputs:
+  - test_input_0.npy
+test_outputs:
+  - test_output_0.npy
+timestamp: '2022-05-18T18:43:26.889129'
+training_data:
+  id: ilastik/stradist_dsb_training_data
+type: model
+weights:
+  keras_hdf5:
+    source: ./keras_model.h5
+    sha256: 27a54e66d24cebe2f4b11e2956a75fbf237736faa71102e10770ed4e2cd50620
+
+version: 0.1.0
+rdf_source: ./rdf.yaml
