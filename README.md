@@ -24,4 +24,4 @@ Graphical tools to show input data overlapped with output data, compare two outp
 For more information and examples of each pipeline, please have a look at the notebook of the corresponding module.
 
 ## Contributions
-We thank @shedabnjm for the helpful discussion and input.
+We thank [@shedabnjm](https://github.com/shedabnjm) for the helpful discussion and input.
