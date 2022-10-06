@@ -104,7 +104,7 @@ viewer.add_image(orig_mito)
 viewer.add_image(final_proc, colormap="viridis", blending="additive")
 
 #%% Save that final Proc
-save_h5(corr_proc, orig_proc_file, "Proc_manual_full")
+save_h5(final_proc, orig_proc_file, "Proc_manual_full2")
 
 
 # %%
