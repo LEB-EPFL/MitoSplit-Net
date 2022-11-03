@@ -97,30 +97,18 @@ def create_model(nb_filters=8, firstConvSize=9, nb_input_channels=1, printSummar
     return model
 
 
-def train_model(model, input_data, output_data, batch_size=16):
+def train_model(model, input_data, output_data, batch_size, validtrain_split_ratio):
     # Split dataset into [test] and [train+valid]
-    data_set_test_trainvalid_ratio = 0.2
-    data_split_state = None   # Random split on each call
-    input_train, input_test, output_train, output_test =  train_test_split(input_data, 
-                                                                           output_data, 
-                                                                           test_size=data_set_test_trainvalid_ratio, 
-                                                                           random_state=data_split_state)
-    
-    validtrain_split_ratio = 0.2  # % of the seen dataset to be put aside for validation, rest is for training
     max_epochs = 20  # maxmimum number of epochs to be iterated
     batch_shuffle= True   # shuffle the training data prior to batching before each epoch
     
-    history = model.fit(input_train, output_train,
+    history = model.fit(input_data, output_data,
                         batch_size=batch_size,
                         epochs=max_epochs,
                         validation_split=validtrain_split_ratio,
                         shuffle=batch_shuffle,
                         verbose=2)
   
-    #Frames separated for evaluation
-    frames_test = np.arange(0, input_data.shape[0], 1)
-    frames_test = shuffle(frames_test, random_state=data_split_state)[0:int(input_data.shape[0]*data_set_test_trainvalid_ratio)]
-    
-    return history.history, frames_test
+    return history.history
 
 
