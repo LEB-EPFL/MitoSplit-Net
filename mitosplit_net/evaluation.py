@@ -73,7 +73,7 @@ def fissionStatsStack(true_labels, pred_labels):
     if true_labels.ndim==2:
         return fissionStats(true_labels, pred_labels)
     
-    stats = np.zeros(6, dtype=int)
+    stats = np.zeros(6, dtype=float)
     for true_lab, pred_lab in zip(true_labels, pred_labels):
         stats += fissionStats(true_lab, pred_lab)
     return stats

@@ -2,8 +2,8 @@ import numpy as np
 
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Activation
-from tensorflow.python.keras.layers import Conv2D, MaxPooling2D, Conv3D, MaxPooling3D
-from tensorflow.python.keras.layers import concatenate, UpSampling2D, BatchNormalization, Reshape
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Conv3D, MaxPooling3D
+from tensorflow.keras.layers import concatenate, UpSampling2D, BatchNormalization, Reshape
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.metrics import BinaryAccuracy
 from sklearn.utils import shuffle
@@ -88,7 +88,7 @@ def create_model(nb_filters=8, firstConvSize=9, nb_input_channels=1, printSummar
     up0 = Activation('relu')(up0)
 
     outputs = Conv2D(1, (1, 1), activation='sigmoid')(up0)  # was relu also before
-    outputs.set_shape([None, None, None, 1])
+    # outputs.set_shape([None, None, None, 1])
     
     model = Model(inputs=inputs, outputs=outputs)
     model.compile(optimizer=optimizer_type, loss=loss, metrics=metrics)

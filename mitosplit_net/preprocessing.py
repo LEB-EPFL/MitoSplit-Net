@@ -169,7 +169,8 @@ def track(fission_props, num_diam=1, min_event_duration=3):
         List of fission site trajectories. Each element includes a tuple with (initial time, final time) and an array with the sequence of positions.
     """
     track_props = []
-
+    if len(fission_props) == 1:
+        fission_props = fission_props[0]
     for f in fission_props:
         if len(f)>0:
             track_props += [np.array(tuple(zip(f['weighted_centroid-0'], f['weighted_centroid-1'], f['equivalent_diameter'])), dtype=np.int8)]

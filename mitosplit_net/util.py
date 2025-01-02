@@ -83,6 +83,8 @@ def save_h5(data, path, name):
     filename = path+name+'.h5'
     print('\nSaving '+filename)
     hf = h5py.File(filename, 'a')
+    if name in hf:
+        del hf[name] 
     hf= hf.create_dataset(name, data=data, compression="gzip", compression_opts=9)
     print('Done.')
   
@@ -145,7 +147,7 @@ def load_model(path, name, folder_name=None, as_type=None, all_models=False):
         return tf.keras.models.load_model(filename+'.h5')
     except:
         model = []
-
+        
         if all_models:
             all_models_dir = glob(model_path+'*/model.h5')
 
