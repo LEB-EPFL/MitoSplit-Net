@@ -88,6 +88,21 @@ def get_tpr(tp, fn):
 def get_f1_score(precision, tpr):
     return 2*(precision*tpr)/(precision+tpr)
 
+def get_fbeta_score(precision, tpr, beta=0.1):
+    return (1 + beta**2) * (precision * tpr) / (beta**2 * precision + tpr)
+
+def get_fbeta_curve(true_labels, pred_output, threshold, beta=0.1): 
+    fbeta_score = []
+    
+    for thr in tqdm(threshold, total=len(threshold)):
+        pred_labels = label(pred_output, threshold=thr)
+        tp, fp, fn = fissionStatsStack(true_labels, pred_labels)[:3]
+        precision = get_precision(tp, fp)
+        tpr = get_tpr(tp, fn)
+        fbeta_score += [get_fbeta_score(precision, tpr, beta)]
+    
+    return np.array(fbeta_score)
+
 def get_f1_curve(true_labels, pred_output, threshold): 
     f1_score = []
     
