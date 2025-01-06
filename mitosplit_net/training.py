@@ -101,10 +101,17 @@ def train_model(model, input_data, output_data, batch_size=16):
     # Split dataset into [test] and [train+valid]
     data_set_test_trainvalid_ratio = 0.2
     data_split_state = None   # Random split on each call
-    input_train, input_test, output_train, output_test =  train_test_split(input_data, 
-                                                                           output_data, 
-                                                                           test_size=data_set_test_trainvalid_ratio, 
-                                                                           random_state=data_split_state)
+
+    test_idxs = range(3700)
+    train_idxs = range(3700, input_data.shape[0])
+    input_train = input_data[train_idxs]
+    output_train = output_data[train_idxs]
+
+
+    # input_train, input_test, output_train, output_test =  train_test_split(input_data, 
+    #                                                                        output_data, 
+    #                                                                        test_size=data_set_test_trainvalid_ratio, 
+    #                                                                        random_state=data_split_state)
     
     validtrain_split_ratio = 0.2  # % of the seen dataset to be put aside for validation, rest is for training
     max_epochs = 20  # maxmimum number of epochs to be iterated
@@ -113,14 +120,14 @@ def train_model(model, input_data, output_data, batch_size=16):
     history = model.fit(input_train, output_train,
                         batch_size=batch_size,
                         epochs=max_epochs,
-                        validation_split=validtrain_split_ratio,
+                        validation_data= (input_data[test_idxs], output_data[test_idxs]),
                         shuffle=batch_shuffle,
                         verbose=2)
   
     #Frames separated for evaluation
-    frames_test = np.arange(0, input_data.shape[0], 1)
-    frames_test = shuffle(frames_test, random_state=data_split_state)[0:int(input_data.shape[0]*data_set_test_trainvalid_ratio)]
+    # frames_test = np.arange(0, input_data.shape[0], 1)
+    # frames_test = shuffle(frames_test, random_state=data_split_state)[0:int(input_data.shape[0]*data_set_test_trainvalid_ratio)]
     
-    return history.history, frames_test
+    return history.history, test_idxs
 
 
